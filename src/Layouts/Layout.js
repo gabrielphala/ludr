@@ -21,6 +21,7 @@ class Layout {
 
     removeLabels () {
         this.content = this.content.replace(/ludr_component_start(.*?);/g, '');
+        this.content = this.content.replace(/ludr_link_active_class(.*?);/g, '');
         this.content = this.content.replace(/ludr_component_end/g, '');
     }
 
@@ -33,16 +34,19 @@ class Layout {
             const components = Utils.extractComponentNames(this.content);
 
             for (let i = 0; i < components.length; i++) {
-                const component = Components.use(components[i].trim());
+                const componentName = components[i].trim(),
+                    component = Components.use(componentName);
 
-                const componentHTML = await Utils.fetch(component.path);
+                let componentHTML = await Utils.fetch(component.path);
 
-                this.content = Env.handlebars.compile(
-                    this.content.replace(
-                        new RegExp(`@ludr_component${components[i]};`, 'gi'),
-                        ` ludr_component_start ${components[i].trim()}; ${componentHTML} ludr_component_end `
-                    )
-                )(component.data);
+                componentHTML = Env.handlebars.compile(componentHTML)(component.data);
+
+                this.content = this.content.replace(
+                    new RegExp(`@ludr_component${components[i]};`, 'gi'),
+                    ` ludr_component_start ${componentName}; ${componentHTML} ludr_component_end `
+                )
+
+                component.linkActiveClass = Utils.extractLinkActiveClass(componentHTML);
             }
 
             Router.currentRoute.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
