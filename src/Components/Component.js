@@ -8,6 +8,7 @@ class Component {
         this.name = name;
         this.nav = nav;
         this.scope = scope;
+        this.linkActiveClass = '';
 
         path = Utils.hasExt(path) ? path : `${path}.${Config.viewsExt}`;
 
