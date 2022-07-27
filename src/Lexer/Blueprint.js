@@ -31,11 +31,11 @@ export default class Blueprint {
         return this.layout[this.pos.index - token.length - offset] || null;
     }
 
-    getModifier (name) {
+    getModifier (name, endPos) {
         const pos = this.layout.indexOf(`${name}=`, this.pos.index);
         let modifier = '', quotationMarks = 0, index = pos + name.length + 1;
 
-        if (pos == -1)
+        if (pos == -1 || pos >= endPos)
             return { modifier: null, pos };
 
         do {
@@ -108,8 +108,8 @@ export default class Blueprint {
                 const lastCharPosOTag = this.layout.indexOf('>', this.pos.index);
                 const modifiers = this.layout.substring(this.pos.index, lastCharPosOTag);
 
-                let { modifier: id, pos: idPod } = this.getModifier('id');
-                let { modifier: _class, pos: classPos } = this.getModifier('class');
+                let { modifier: id, pos: idPod } = this.getModifier('id', lastCharPosOTag);
+                let { modifier: _class, pos: classPos } = this.getModifier('class', lastCharPosOTag);
 
                 _class = _class ? _class.split(' ')[0] : null;
 
