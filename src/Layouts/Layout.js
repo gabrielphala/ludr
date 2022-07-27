@@ -37,7 +37,12 @@ class Layout {
 
                 const componentHTML = await Utils.fetch(component.path);
 
-                this.content = this.content.replace(new RegExp(`@ludr_component${components[i]};`, 'gi'), ` ludr_component_start ${components[i].trim()}; ${componentHTML} ludr_component_end `)
+                this.content = Env.handlebars.compile(
+                    this.content.replace(
+                        new RegExp(`@ludr_component${components[i]};`, 'gi'),
+                        ` ludr_component_start ${components[i].trim()}; ${componentHTML} ludr_component_end `
+                    )
+                )(component.data);
             }
 
             Router.currentRoute.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
