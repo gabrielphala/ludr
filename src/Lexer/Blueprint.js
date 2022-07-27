@@ -138,6 +138,10 @@ export default class Blueprint {
                 id = id ? id : _class;
 
                 this.blueprint.push({
+                    id: {
+                        type: id ? 'id' : 'class',
+                        value: id ? id : _class
+                    },
                     hierachy,
                     modifiers,
                     id,
