@@ -83,7 +83,7 @@ class Utils {
         const linkActiveClasses = string.match(/ludr_link_active_class(.*?);/gi) || [];
 
         return linkActiveClasses[linkActiveClasses.length - 1] ? 
-            linkActiveClasses[linkActiveClasses.length - 1] : 
+            linkActiveClasses[linkActiveClasses.length - 1].replace('ludr_link_active_class', '').replace(';', '') : 
             '';
     };
 
