@@ -36,22 +36,20 @@ export const Load = () => {
 
     const route = Router.getRoute();
 
+    Router.currentRoute = route;
+
     Layouts.build(route.layout);
 
     Middleware.run();
 }
 
-export const Next = () => {
-    // Log info
-    if (Config.showInfo) {
-        console.log(`
-            base views: ${Config.baseViews}
-            component views: ${Config.componentViews}
-            layout views: ${Config.layoutViews}
-        `);
-    }
+export const Next = (path) => {
+    const currentRoute = Router.currentRoute;
+    const nextRoute = Router.getRoute(path);
 
-    const route = Router.getRoute();
+    Router.currentRoute = nextRoute;
 
-    Layouts.build(route.layout);
+    Layouts.switch(currentRoute, nextRoute);
+
+    Middleware.run();
 }
