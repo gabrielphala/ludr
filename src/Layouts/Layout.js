@@ -26,7 +26,7 @@ class Layout {
     }
 
     build () {
-        Middleware.add(async next => {
+        Middleware.once(async next => {
             const layoutContent = await Utils.fetch(this.path);
 
             this.content = Env.handlebars.compile(layoutContent)(this.data);
@@ -37,21 +37,26 @@ class Layout {
                 const componentName = components[i].trim(),
                     component = Components.use(componentName);
 
-                let componentHTML = await Utils.fetch(component.path);
+                let componentHTML = component.rawContent ? component.rawContent : await Utils.fetch(component.path);
 
-                componentHTML = Env.handlebars.compile(componentHTML)(component.data);
+                component.rawContent = component.rawContent ? component.rawContent : componentHTML;
+
+                componentHTML = component.content ? component.content : Env.handlebars.compile(componentHTML)(component.data);
+                component.content = component.content ? component.content : componentHTML;
 
                 this.content = this.content.replace(
                     new RegExp(`@ludr_component${components[i]};`, 'gi'),
                     ` ludr_component_start ${componentName}; ${componentHTML} ludr_component_end `
                 )
 
-                component.linkActiveClass = Utils.extractLinkActiveClass(componentHTML).trim();
+                component.linkActiveClass = component.linkActiveClass || Utils.extractLinkActiveClass(componentHTML).trim();
             }
 
-            Router.currentRoute.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
+            const router = Router.use(Router.currentRoute.name);
 
-            this.removeLabels()
+            router.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
+
+            this.removeLabels();
 
             next();
         })
