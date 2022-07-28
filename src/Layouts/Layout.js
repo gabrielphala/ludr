@@ -57,6 +57,46 @@ class Layout {
         })
     }
 
+    getModifierKeyValuePair (modifiers, callback) {
+        let isInQuotes = false, key = '', value = '';
+        
+        for (let i = 0; i < modifiers.length; i++) {
+            if (modifiers[i] == '=' && `"'`.includes(modifiers[i + 1]))
+                continue;
+
+            if (isInQuotes) {
+                if (`"'`.includes(modifiers[i])) {
+                    callback(key, value)
+
+                    isInQuotes = false;
+                    key = '';
+                    value = '';
+
+                    continue;
+                }
+
+                value += modifiers[i];
+
+                continue;
+            }
+
+            if (`"'`.includes(modifiers[i]) && !isInQuotes) {
+                isInQuotes = true;
+                
+                continue;
+            }
+
+            key += modifiers[i];
+
+            if (key && (modifiers[i + 1] == ' ' || modifiers[i + 1] == '' || !modifiers[i + 1])) {
+                callback(key, true)
+
+                key = '';
+                value = '';
+            }
+        }
+    }
+
     removeClassElement (className) {
         document.getElementsByClassName(className)[0].remove()
     }
@@ -78,9 +118,10 @@ class Layout {
 
     addNewElements (oldBlueprint, currentBlueprint) {
         Utils.iterate(currentBlueprint, elementName => {
-            const element = currentBlueprint[elementName];
+            const element = currentBlueprint[elementName],
+                oldElement = oldBlueprint[elementName];
 
-            if (!oldBlueprint[elementName]) {
+            if (!oldElement) {
                 let parent = element.parent.id.value == 'root' ?
                     document.body :
                     (
@@ -91,6 +132,10 @@ class Layout {
 
                 const newElement = document.createElement(element.element.type);
 
+                this.getModifierKeyValuePair(element.modifiers, (key, value) => {
+                    newElement.setAttribute(key.trim(), value);
+                })
+
                 if (element.component.isComponent)
                     newElement.innerHTML = element.component.innerHTML;
 
@@ -98,6 +143,13 @@ class Layout {
                     newElement.innerText = element.element.innerText;
 
                 parent.append(newElement);
+            }
+            else if (oldElement && (oldElement.element.innerText != element.element.innerText)) {
+                const elementToChange = element.id.type == 'id' ?
+                    document.getElementById(element.id.value) :
+                    document.getElementsByClassName(element.id.value)[0]
+
+                elementToChange.innerText = element.element.innerText; 
             }
         })
     }
