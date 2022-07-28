@@ -1,11 +1,12 @@
 import Position from "./Position";
 import { numbers, alpha, elements } from "./Chars";
+import Utils from "../Utils";
 
 export default class Blueprint {
     constructor (name, layout) {
         this.layoutName = name;
         this.layout = layout;
-        this.blueprint = [];
+        this.blueprint = {};
         this.currentChar = null;
         this.pos = new Position()
 
@@ -19,12 +20,34 @@ export default class Blueprint {
     }
 
     getParent (hierachy) {
-        for (let i = this.blueprint.length - 1; i >= 0; i--) {
-            if (this.blueprint[i].hierachy == hierachy)
-                return this.blueprint[i].id;            
-        }
+        let parent = {
+            id: {
+                value: 'root'
+            }
+        };
 
-        return 'root';
+        Utils.iterate(this.blueprint, elementName => {
+            if (this.blueprint[elementName].hierachy == hierachy) {
+                parent = {
+                    id: {
+                        type: this.blueprint[elementName].id.type,
+                        value: this.blueprint[elementName].id.value
+                    }
+                };
+
+                this.blueprint[elementName].isParent = true; 
+            }
+        })
+
+        return parent;
+    }
+
+    getNonParents (callback) {
+        Utils.iterate(this.blueprint, element => {
+            if (!this.blueprint[element].isParent) {
+                callback(this.blueprint[element])
+            }
+        })
     }
     
     getPastTokenChar (token, offset = 1) {
@@ -137,16 +160,35 @@ export default class Blueprint {
 
                 id = id ? id : _class;
 
-                this.blueprint.push({
+                let componentInnerHTML;
+
+                let elementStartPos = this.layout.indexOf(`<${token}${modifiers}>`) + `<${token}${modifiers}>`.length;
+
+                if (isInsideComponent) {
+                    let componentEndPos = this.layout.indexOf(`</${token}> ludr_component_end`);
+
+                    componentInnerHTML = this.layout.substring(elementStartPos, componentEndPos)
+                }
+
+                this.blueprint[id] = {
                     id: {
-                        type: id ? 'id' : 'class',
-                        value: id ? id : _class
+                        type: !_class ? 'id' : 'class',
+                        value: !_class ? id : _class
+                    },
+                    isParent: false,
+                    element: {
+                        innerText: '',
+                        type: token,
+                        startPos: elementStartPos
+                    },
+                    component: {
+                        isComponent: isInsideComponent,
+                        innerHTML: componentInnerHTML
                     },
                     hierachy,
                     modifiers,
-                    id,
                     parent
-                })
+                };
             }
 
             if (elements.includes(token) && this.getPastTokenChar(token) == '/' && this.getPastTokenChar(token, 2) == '<')
@@ -156,6 +198,12 @@ export default class Blueprint {
 
             this.next()
         }
+
+        this.getNonParents((element) => {
+            let endPos = this.layout.indexOf(`</${element.element.type}>`, element.element.startPos);
+
+            element.element.innerText = this.layout.substring(element.element.startPos, endPos);
+        })
 
         return this.blueprint;
     }

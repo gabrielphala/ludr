@@ -46,7 +46,7 @@ class Layout {
                     ` ludr_component_start ${componentName}; ${componentHTML} ludr_component_end `
                 )
 
-                component.linkActiveClass = Utils.extractLinkActiveClass(componentHTML);
+                component.linkActiveClass = Utils.extractLinkActiveClass(componentHTML).trim();
             }
 
             Router.currentRoute.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
@@ -54,6 +54,51 @@ class Layout {
             this.removeLabels()
 
             next();
+        })
+    }
+
+    removeClassElement (className) {
+        document.getElementsByClassName(className)[0].remove()
+    }
+
+    removeIdElement (idName) {
+        document.getElementById(idName).remove()
+    }
+
+    removeUnusedElements (oldBlueprint, currentBlueprint) {
+        Utils.iterate(oldBlueprint, element => {
+            if (!currentBlueprint[element]) {
+                if (oldBlueprint[element].id.type == 'class')
+                    return this.removeClassElement(oldBlueprint[element].id.value);
+
+                return this.removeIdElement(oldBlueprint[element].id.value);
+            }
+        })
+    }
+
+    addNewElements (oldBlueprint, currentBlueprint) {
+        Utils.iterate(currentBlueprint, elementName => {
+            const element = currentBlueprint[elementName];
+
+            if (!oldBlueprint[elementName]) {
+                let parent = element.parent.id.value == 'root' ?
+                    document.body :
+                    (
+                        element.parent.id.type == 'id' ?
+                            document.getElementById(element.parent.id.value) :
+                            document.getElementsByClassName(element.parent.id.value)[0]
+                    )
+
+                const newElement = document.createElement(element.element.type);
+
+                if (element.component.isComponent)
+                    newElement.innerHTML = element.component.innerHTML;
+
+                else
+                    newElement.innerText = element.element.innerText;
+
+                parent.append(newElement);
+            }
         })
     }
 }
