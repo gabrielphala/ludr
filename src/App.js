@@ -52,4 +52,6 @@ export const Next = (path) => {
     Layouts.switch(currentRoute, nextRoute);
 
     Middleware.run();
+
+    nextRoute.updateHistory(path);
 }

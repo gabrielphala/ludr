@@ -1,3 +1,5 @@
+import Config from "../Config";
+import Layouts from "../Layouts";
 import Router from "./index";
 
 class Route {
@@ -10,6 +12,18 @@ class Route {
         this.layout = layout;
 
         this.blueprint = null;
+    }
+
+    updateHistory (path) {
+        const pageTitle = Config.pageTitle + ' | ' + this.title;
+
+        document.title = pageTitle;
+
+        history.pushState(
+            Layouts.use(this.layout).content,
+            pageTitle,
+            path
+        );
     }
 };
 
