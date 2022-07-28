@@ -15,10 +15,10 @@ export default new (class Components {
     }
 
     add (name, component) {
-        if (!component.nav)
-            return this.components[name] = component;
-            
-        this.navComponents[name] = component;
+        this.components[name] = component;
+        
+        if (component.nav)
+            this.navComponents[name] = component;
     };
 
     exists (name) {
@@ -41,9 +41,6 @@ export default new (class Components {
 
     iterateOverComponents (callback) {
         Utils.iterate(this.navComponents, component => {
-            if (!this.navComponents.hasOwnProperty(component))
-                return;
-
             if (!this.isInScope(this.navComponents[component].scope, Router.currentRoute.name))
                 return;
 
@@ -63,6 +60,9 @@ export default new (class Components {
                 const targetElements = parent.getElementsByClassName(targetClass);
 
                 Array.from(targetElements).forEach(targetElement => {
+                    if (component.linkActiveClass && !targetElement.dataset.linkactive)
+                        targetElement.dataset.linkactive = component.linkActiveClass;
+
                     callback(targetElement);
                 });
             });
