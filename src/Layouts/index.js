@@ -1,7 +1,6 @@
 import Middleware from "../Middleware";
 import Components from "../Components";
 import Utils from "../Utils";
-import Router from "../Router";
 
 export default new (class Layouts {
     constructor () {
@@ -17,13 +16,20 @@ export default new (class Layouts {
         this.layouts[name] = layout;
     }
 
+    use (name) {
+        if (!this.layouts[name])
+            throw `No corresponding layout: there is no pre-defined layout with the name: (${name})`;
+        
+        return this.layouts[name];
+    }
+
     build (name) {
         if (!this.layouts[name])
             throw `No corresponding layout: there is no pre-defined layout with the name: (${name})`;
 
         this.layouts[name].build();
 
-        Middleware.add(() => {
+        Middleware.once(() => {
             Utils.prependToBody(this.layouts[name].content)
 
             Components.initHighlightNavItems();
@@ -37,14 +43,13 @@ export default new (class Layouts {
         if (!layout)
             throw `No corresponding layout: there is no pre-defined layout with the name: (${currentRoute.layout})`;
 
-        Middleware.pop();
-        Middleware.pop();
+        if (!currentRoute.blueprint)
+            layout.build();
+        Middleware.once((next) => {
+            layout.removeUnusedElements(oldRoute.blueprint, currentRoute.blueprint);
+            layout.addNewElements(oldRoute.blueprint, currentRoute.blueprint);
 
-        layout.build();
-
-        Middleware.add(() => {
-            layout.removeUnusedElements(oldRoute.blueprint, Router.currentRoute.blueprint);
-            layout.addNewElements(oldRoute.blueprint, Router.currentRoute.blueprint);
+            next()
         })
     }
 });
