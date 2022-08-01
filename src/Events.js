@@ -1,20 +1,20 @@
 export default class Events {
-    constructor (_class) {
+    constructor (obj) {
         this.eventCBs = !Events.instance ? [] : Events.instance.eventCBs;
 
-        this.addEventCBs(_class);
+        this.addEventCBs(obj);
 
         Events.instance = !Events.instance ? this : Events.instance;
 
         return Events.instance;
     }
 
-    addEventCBs (_class) {
-        Object.getOwnPropertyNames(_class.prototype).forEach(eventCB => {
+    addEventCBs (obj) {
+        Object.getOwnPropertyNames(obj.prototype).forEach(eventCB => {
             if (eventCB == 'constructor')
                 return;
 
-            this.eventCBs.push(`${_class.name + '.' + eventCB}`)            
+            this.eventCBs.push(`${obj.name + '.' + eventCB}`)            
         });
     }
 }
