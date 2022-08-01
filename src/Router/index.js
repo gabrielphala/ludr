@@ -48,7 +48,7 @@ export default new (class Router {
         });
 
         if (!route)
-            throw `No corresponding route: there is no pre-defined route that matches the path: (${url})`;
+            throw `Route not found: there is no pre-defined route that matches the path: (${url})`;
 
         route.params = Url.getParams(route.url, url);
 
