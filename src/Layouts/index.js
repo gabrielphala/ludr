@@ -45,6 +45,7 @@ export default new (class Layouts {
 
         if (!currentRoute.blueprint)
             layout.build();
+            
         Middleware.once((next) => {
             layout.removeUnusedElements(oldRoute.blueprint, currentRoute.blueprint);
             layout.addNewElements(oldRoute.blueprint, currentRoute.blueprint);
