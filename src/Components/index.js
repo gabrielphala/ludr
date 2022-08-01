@@ -1,6 +1,7 @@
-import { Next } from "../App";
 import Router from "../Router";
 import Utils from "../Utils";
+import Groups from "../Groups";
+import { Next } from "../App";
 
 export default new (class Components {
     constructor () {
@@ -26,10 +27,14 @@ export default new (class Components {
     }
 
     use (name) {
+        if (this.components[name])
+            return this.components[name];
+
+        else if (Groups.exists(name))
+            return this.use(Groups.getComponent(name));
+
         if (!this.components[name])
-            throw `Could not find component (${name})`;
-            
-        return this.components[name];
+            throw `Component not found: could not find component with name (${name})`;
     }
 
     isInScope (scope, routeName) {
