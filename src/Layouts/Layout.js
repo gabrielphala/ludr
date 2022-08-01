@@ -37,16 +37,14 @@ class Layout {
                 const componentName = components[i].trim(),
                     component = Components.use(componentName);
 
-                let componentHTML = component.rawContent ? component.rawContent : await Utils.fetch(component.path);
-
-                component.rawContent = component.rawContent ? component.rawContent : componentHTML;
-
-                componentHTML = component.content ? component.content : Env.handlebars.compile(componentHTML)(component.data);
-                component.content = component.content ? component.content : componentHTML;
+                // if component has no content, fetch it and compile it
+                component.content = !component.content ?
+                    Env.handlebars.compile(await Utils.fetch(component.path))(component.data) :
+                    component.content;
 
                 this.content = this.content.replace(
                     new RegExp(`@ludr_component${components[i]};`, 'gi'),
-                    ` ludr_component_start ${componentName}; ${componentHTML} ludr_component_end `
+                    ` ludr_component_start ${componentName}; ${component.content} ludr_component_end `
                 )
 
                 component.linkActiveClass = component.linkActiveClass || Utils.extractLinkActiveClass(componentHTML).trim();
