@@ -1,22 +1,23 @@
-import Position from "./Position";
-import { numbers, alpha, elements } from "./Chars";
+import { alpha, elements } from "./Chars";
 import Utils from "../Utils";
+import Lexer from "./Lexer";
 
-export default class Blueprint {
+
+export default class Blueprint extends Lexer {
     constructor (name, layout) {
-        this.layoutName = name;
-        this.layout = layout;
-        this.blueprint = {};
-        this.currentChar = null;
-        this.pos = new Position()
+        super(layout);
 
-        this.next();
+        this.layoutName = name;
+        this.blueprint = {};
+        this.componentTree = [];
     }
 
-    next () {
-        this.pos.next(this.currentChar);
+    get layout () {
+        return this.str;
+    }
 
-        this.currentChar = this.pos.index < this.layout.length ? this.layout[this.pos.index] : null;
+    get currentComponent () {
+        return this.componentTree[this.componentTree.length - 1];
     }
 
     getParent (hierachy) {
@@ -25,6 +26,8 @@ export default class Blueprint {
                 value: 'root'
             }
         };
+
+        let parentName;
 
         Utils.iterate(this.blueprint, elementName => {
             if (this.blueprint[elementName].hierachy == hierachy) {
@@ -35,9 +38,12 @@ export default class Blueprint {
                     }
                 };
 
-                this.blueprint[elementName].isParent = true; 
+                parentName = elementName;
             }
         })
+
+        if (parentName)
+            this.blueprint[parentName].isParent = true; 
 
         return parent;
     }
@@ -48,10 +54,6 @@ export default class Blueprint {
                 callback(this.blueprint[element])
             }
         })
-    }
-    
-    getPastTokenChar (token, offset = 1) {
-        return this.layout[this.pos.index - token.length - offset] || null;
     }
 
     getModifier (name, endPos) {
@@ -72,32 +74,18 @@ export default class Blueprint {
         return { modifier, pos };
     }
 
-    makeString () {
-        const letters = numbers + alpha + '_-.';
-        let str = '';
-
-        while (letters.includes(this.currentChar)) {
-            str += this.currentChar;
-
-            this.next();
-        };
-
-        return str;
-    }
-
     makeBlueprint () {
         let previousToken,
+            previousElemFOID,
             hierachy = 0,
             isInsideComponent = false,
-            componentRootHierachy,
-            componentName,
-            componentLine,
             totalComponentLines = 1,
-            classes = [];
+            classes = [],
+            eventPositions = [];
 
         while (this.currentChar != null) {
             if (this.currentChar == "\n" && isInsideComponent) {
-                componentLine++;
+                this.currentComponent.line++;
                 totalComponentLines++;
             }
 
@@ -110,22 +98,85 @@ export default class Blueprint {
             let token = alpha.includes(this.currentChar) ? this.makeString() : this.currentChar;
 
             if (previousToken == 'ludr_component_start') {
-                componentLine = 1;
-                componentName = token;
+                this.componentTree.push({
+                    line: 0,
+                    name: token,
+                    parent: isInsideComponent ? this.currentComponent.name : 'none',
+                    hasRoot: false,
+                    rootHierachy: hierachy + 1
+                })
+
                 isInsideComponent = true;
-                componentRootHierachy = hierachy + 1;
+            }
+
+            else if (['onsubmit', 'onclick'].includes(token) && this.lookAhead() != '=') {
+                let outsideParam = true, mainQuotes, end = false, index = this.pos.index, strevents = '';
+
+                while (!end) {
+                    ++index;
+
+                    if (outsideParam && this.layout[index] == ' ') { continue; }
+
+                    else if (mainQuotes && `"'`.includes(this.layout[index]) && this.layout[index] != mainQuotes) {
+                        outsideParam = !outsideParam;
+                    }
+
+                    else if (!mainQuotes && (this.layout[index] == '\'' || this.layout[index] == '"')) {
+                        mainQuotes = this.layout[index];
+
+                        continue;
+                    }
+
+                    else if (mainQuotes && this.layout[index] == mainQuotes) {
+                        end = true;
+
+                        eventPositions.push({ start: this.pos.index - token.length, end: index + 1 });
+
+                        continue;
+                    }
+                        
+                    strevents += this.layout[index];
+                }
+
+                const events = {};
+
+                const eventArr = strevents.trim().split(';');
+
+                eventArr.forEach(event => {
+                    const lParamPos = event.indexOf('(');
+
+                    const params = event.substring(lParamPos + 1, event.length - 1);
+
+                    const resolvedParams = [];
+
+                    params.split(',').forEach(param => {
+                        if (`'"`.includes(param.charAt(0)))
+                            return resolvedParams.push(param.substring(1, param.length - 1)) 
+
+                        resolvedParams.push(param);
+                    });
+
+                    events[event.substring(0, lParamPos)] = resolvedParams
+                });
+
+                this.blueprint[previousElemFOID].modifiers =
+                    this.blueprint[previousElemFOID].modifiers.
+                    replace(`${token}${this.lookAhead() == ' ' ? ' ' : ''}${mainQuotes + strevents + mainQuotes}`, '');
+
+                this.blueprint[previousElemFOID].events[token] = events;
             }
             
             else if (token == 'ludr_component_end') {
-                componentName = '';
-                isInsideComponent = false;
-                componentRootHierachy = null;
+                if (this.currentComponent.parent == 'none')
+                    isInsideComponent = false;
+                
+                this.componentTree.pop();
             }
 
-            else if (elements.includes(token) && this.getPastTokenChar(token) == '<') {
+            else if (elements.includes(token) && this.lookBehind(token) == '<') {
                 ++hierachy;
 
-                if (isInsideComponent && hierachy != componentRootHierachy) 
+                if (isInsideComponent && hierachy != this.currentComponent.rootHierachy) 
                     continue;
 
                 const lastCharPosOTag = this.layout.indexOf('>', this.pos.index);
@@ -144,10 +195,10 @@ export default class Blueprint {
                     classIsUniq = true;
                 }
 
-                let errorLine = isInsideComponent ? componentLine : this.pos.line - totalComponentLines + 1;
+                let errorLine = isInsideComponent ? this.currentComponent.line : this.pos.line - totalComponentLines + 1;
 
                 let errorMsg = isInsideComponent ?  
-                    `Element: ${token}, at line ${errorLine}, in component: ${componentName}, has no id or unique class` : 
+                    `Element: ${token}, at line ${errorLine}, in component: ${this.currentComponent.name}, has no id or unique class` : 
                     `Element: ${token}, at line ${errorLine}, in layout: ${this.layoutName}, has no id or unique class`
 
                 const hasId = !(id == null || id.trim() == '' || idPod > lastCharPosOTag);
@@ -158,22 +209,25 @@ export default class Blueprint {
 
                 const parent = this.getParent(hierachy - 1);
 
-                id = id ? id : _class;
+                if (isInsideComponent && this.currentComponent.hasRoot)
+                    throw `Root element count exeeded: Component (${this.currentComponent.name}) has a root element.`;
+
+                const firstOrderId = id ? id : _class;
 
                 let componentInnerHTML;
 
-                let elementStartPos = this.layout.indexOf(`<${token}${modifiers}>`) + `<${token}${modifiers}>`.length;
+                let elementStartPos = this.layout.indexOf(`<${token + modifiers}>`, this.pos.index - token.length - 2) + `<${token + modifiers}>`.length;
 
                 if (isInsideComponent) {
-                    let componentEndPos = this.layout.indexOf(`</${token}> ludr_component_end`);
-
+                    let componentEndPos = this.layout.indexOf(` ludr_component_end`, elementStartPos) - `</${token}>`.length - 2;
+                    
                     componentInnerHTML = this.layout.substring(elementStartPos, componentEndPos)
                 }
 
-                this.blueprint[id] = {
+                this.blueprint[firstOrderId] = {
                     id: {
-                        type: !_class ? 'id' : 'class',
-                        value: !_class ? id : _class
+                        type: id ? 'id' : 'class',
+                        value: firstOrderId
                     },
                     isParent: false,
                     element: {
@@ -186,12 +240,18 @@ export default class Blueprint {
                         innerHTML: componentInnerHTML
                     },
                     hierachy,
+                    events: {},
                     modifiers,
                     parent
                 };
+
+                previousElemFOID = firstOrderId;
+
+                if (this.currentComponent)
+                    this.currentComponent.hasRoot = true;
             }
 
-            if (elements.includes(token) && this.getPastTokenChar(token) == '/' && this.getPastTokenChar(token, 2) == '<')
+            if (elements.includes(token) && this.lookBehind(token) == '/' && this.lookBehind(token, 2) == '<')
                 hierachy--;
             
             previousToken = token;
@@ -204,6 +264,8 @@ export default class Blueprint {
 
             element.element.innerText = this.layout.substring(element.element.startPos, endPos);
         })
+
+        this.eventPositions = eventPositions;
 
         return this.blueprint;
     }
