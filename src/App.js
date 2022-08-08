@@ -1,11 +1,14 @@
 import Router from "./Router";
 import Layouts from "./Layouts"
 import Config from "./Config";
-import Env from "./Env"
+import Utils from "./Utils";
 import Middleware from "./Middleware";
 
+/**
+ * Load route
+ * @date 2022-08-08
+ */
 export const Load = () => {
-    // Log info
     if (Config.showInfo) {
         console.log(
             `base views: ${Config.baseViews}` +
@@ -14,25 +17,7 @@ export const Load = () => {
         );
     }
 
-    Env.handlebars.registerHelper('component', function (str) {
-        return `@ludr_component ${str};`;
-    })
-
-    Env.handlebars.registerHelper('globalLinkActive', function (str) {
-        const linkActiveClassArr = str.split('data:');
-
-        return linkActiveClassArr.length == 1 ?
-            `ludr_link_active_class ${str};` : 
-            `ludr_link_active_class ${Env.get(linkActiveClassArr[1])};`
-    })
-
-    Env.handlebars.registerHelper('link', function (str) {
-        return `data-linkaddress="${str}"`;
-    })
-
-    Env.handlebars.registerHelper('linkActive', function (str) {
-        return `data-linkactive="${str}"`;
-    })
+    Utils.setUpHandleBarsHelpers();
 
     const route = Router.getRoute();
 
@@ -43,6 +28,11 @@ export const Load = () => {
     Middleware.run();
 }
 
+/**
+ * Switch route 
+ * @date 2022-08-08
+ * @param {path} path
+ */
 export const Next = (path) => {
     const currentRoute = Router.currentRoute;
     const nextRoute = Router.getRoute(path);
