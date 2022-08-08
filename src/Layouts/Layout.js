@@ -12,6 +12,7 @@ class Layout {
     constructor (name, path, data = {}) {
         this.name = name;
         this.content = '';
+        this.componentCallStack = {};
         this.data = { ...Env.globalContainer, ...data };
 
         path = Utils.hasExt(path) ? path : `${path}.${Config.viewsExt}`;
@@ -19,12 +20,76 @@ class Layout {
         this.path = Url.cleanURL(`${Config.layoutViews}/${path}`);
     }
 
+    /**
+     * Removes all labels from the content
+     * @date 2022-08-08
+     */
     removeLabels () {
         this.content = this.content.replace(/ludr_component_start(.*?);/g, '');
         this.content = this.content.replace(/ludr_link_active_class(.*?);/g, '');
         this.content = this.content.replace(/ludr_component_end/g, '');
     }
 
+    /**
+     * Caches component content and resolves nested components
+     * @date 2022-08-08
+     * @param {object} components
+     * @param {string | object} parent
+     */
+    async parseComponents (components, parent = 'none') {
+        for (let i = 0; i < components.length; i++) {
+            const componentName = components[i].trim(),
+                component = Components.use(componentName);
+
+            // if component has no content, fetch it and compile it
+            component.content = !component.content ?
+                Env.handlebars.compile(await Utils.fetch(component.path))(component.data) :
+                component.content;
+
+            const nestedComponents = Utils.extractComponentNames(component.content);
+
+            this.componentCallStack[componentName] = this.componentCallStack[componentName] || ``;
+
+            this.componentCallStack[componentName] += parent != 'none' ?
+                ` ${parent.name + ' ' + this.componentCallStack[parent.name]}` :
+                '';
+
+            if (this.componentCallStack[componentName].split(' ').indexOf(componentName) > 0)
+                throw `Recursive inclusion of component: (${componentName})`;
+
+            this.content = this.content.replace(
+                new RegExp(`@ludr_component${components[i]}end`, 'gi'),
+                `${parent != 'none' ? component.content : 'ludr_component_start ' + componentName + ';' + component.content + ' ludr_component_end'}`
+            )
+
+            if (nestedComponents)
+                await this.parseComponents(nestedComponents, component);
+
+            component.linkActiveClass = component.linkActiveClass || Utils.extractLinkActiveClass(component.content).trim();
+        }
+    }
+
+    /**
+     * Removes event descriptions from layout
+     * @date 2022-08-08
+     * @param {array} eventsPositions
+     */
+    removeEventDefinitions (eventsPositions) {
+        let removedLength = 0;
+
+        eventsPositions.forEach(event => {
+            const eventDefinition = this.content.substring(event.start - removedLength, event.end - removedLength);
+            this.content = this.content.replace(eventDefinition, '');
+
+            removedLength += eventDefinition.length;
+        });
+    }
+
+    /**
+     * Populates layout with components' content
+     * and assigns a blueprint to current route
+     * @date 2022-08-08
+     */
     build () {
         Middleware.once(async next => {
             const layoutContent = await Utils.fetch(this.path);
@@ -33,33 +98,27 @@ class Layout {
 
             const components = Utils.extractComponentNames(this.content);
 
-            for (let i = 0; i < components.length; i++) {
-                const componentName = components[i].trim(),
-                    component = Components.use(componentName);
-
-                // if component has no content, fetch it and compile it
-                component.content = !component.content ?
-                    Env.handlebars.compile(await Utils.fetch(component.path))(component.data) :
-                    component.content;
-
-                this.content = this.content.replace(
-                    new RegExp(`@ludr_component${components[i]};`, 'gi'),
-                    ` ludr_component_start ${componentName}; ${component.content} ludr_component_end `
-                )
-
-                component.linkActiveClass = component.linkActiveClass || Utils.extractLinkActiveClass(componentHTML).trim();
-            }
+            await this.parseComponents(components);
 
             const router = Router.use(Router.currentRoute.name);
 
-            router.blueprint = (new Blueprint(this.name, this.content)).makeBlueprint();
+            const blueprint = new Blueprint(this.name, this.content);
 
+            router.blueprint = blueprint.makeBlueprint();
+
+            this.removeEventDefinitions(blueprint.eventPositions)
             this.removeLabels();
 
             next();
         })
     }
 
+    /**
+     * extracts key-value pairs from modifiers
+     * @date 2022-08-08
+     * @param {string} modifiers
+     * @param {function} callback
+     */
     getModifierKeyValuePair (modifiers, callback) {
         let isInQuotes = false, key = '', value = '';
         
@@ -100,25 +159,54 @@ class Layout {
         }
     }
 
+    /**
+     * removes element by classname
+     * @date 2022-08-08
+     * @param {string} className
+     */
     removeClassElement (className) {
-        document.getElementsByClassName(className)[0].remove()
+        document.getElementsByClassName(className)[0].remove();
     }
 
+    /**
+     * removes element by id
+     * @date 2022-08-08
+     * @param {string} idName
+     */
     removeIdElement (idName) {
-        document.getElementById(idName).remove()
+        document.getElementById(idName).remove();
     }
 
+    /**
+     * Removes old elements not used by current blueprint
+     * @date 2022-08-08
+     * @param {object} oldBlueprint
+     * @param {object} currentBlueprint
+     */
     removeUnusedElements (oldBlueprint, currentBlueprint) {
+        let removedParents = [];
+
         Utils.iterate(oldBlueprint, element => {
             if (!currentBlueprint[element]) {
-                if (oldBlueprint[element].id.type == 'class')
-                    return this.removeClassElement(oldBlueprint[element].id.value);
+                if (oldBlueprint[element].isParent)
+                    removedParents.push(element)
 
-                return this.removeIdElement(oldBlueprint[element].id.value);
+                if (!removedParents.includes(oldBlueprint[element].parent.id.value)) {
+                    if (oldBlueprint[element].id.type == 'class')
+                        return this.removeClassElement(oldBlueprint[element].id.value);
+
+                    return this.removeIdElement(oldBlueprint[element].id.value);
+                }
             }
         })
     }
 
+    /**
+     * Adds new elements not used by old blueprint
+     * @date 2022-08-08
+     * @param {object} oldBlueprint
+     * @param {object} currentBlueprint
+     */
     addNewElements (oldBlueprint, currentBlueprint) {
         Utils.iterate(currentBlueprint, elementName => {
             const element = currentBlueprint[elementName],
@@ -135,7 +223,7 @@ class Layout {
 
                 const newElement = document.createElement(element.element.type);
 
-                this.getModifierKeyValuePair(element.modifiers, (key, value) => {
+                this.getModifierKeyValuePair(element.modifiers.trim(), (key, value) => {
                     newElement.setAttribute(key.trim(), value);
                 })
 
@@ -158,4 +246,11 @@ class Layout {
     }
 }
 
+/**
+ * Creates and returns a new layout
+ * @date 2022-08-08
+ * @param {string} name
+ * @param {string} path
+ * @return {Layout}
+ */
 export default (name, path) => Layouts.add(name, new Layout(name, path));
