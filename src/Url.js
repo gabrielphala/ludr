@@ -1,8 +1,20 @@
 class Url {
+    /**
+     * Checks whether the url segment starts with a colon
+     * @date 2022-08-08
+     * @param {string} urlSegment
+     * @return {boolean}
+     */
     static isPlaceholder (urlSegment) {
         return urlSegment.charAt(0) == ':';
     };
 
+    /**
+     * Removes redundant forward slashes
+     * @date 2022-08-08
+     * @param {string} url
+     * @return {string}
+     */
     static cleanURL (url) {
         let cleanUrl = '';
 
@@ -19,6 +31,13 @@ class Url {
         return cleanUrl;
     };
 
+    /**
+     * Makes a pair of arrays from a pair of url strings 
+     * @date 2022-08-08
+     * @param {string} unresolvedUrl
+     * @param {string} resolvedUrl
+     * @return {object}
+     */
     static getUrlPair (unresolvedUrl, resolvedUrl) {
         return {
             unresolvedUrlArray: unresolvedUrl.split('/'),
@@ -26,6 +45,13 @@ class Url {
         };
     }
 
+    /**
+     * Gets a key-value pair of url params
+     * @date 2022-08-08
+     * @param {string} unresolvedUrl
+     * @param {string} resolvedUrl
+     * @return {object}
+     */
     static getParams (unresolvedUrl, resolvedUrl) {
         const { unresolvedUrlArray, resolvedUrlArray } = Url.getUrlPair(unresolvedUrl, resolvedUrl);
 
@@ -39,6 +65,13 @@ class Url {
         return params;
     }
 
+    /**
+     * Compares a 'variable' url string to a normal url string
+     * @date 2022-08-08
+     * @param {string} unresolvedUrl
+     * @param {string} resolvedUrl
+     * @return {boolean}
+     */
     static compare (unresolvedUrl, resolvedUrl) {
         const { unresolvedUrlArray, resolvedUrlArray } = Url.getUrlPair(unresolvedUrl, resolvedUrl);
 
