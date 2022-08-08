@@ -15,17 +15,35 @@ export default new (class Components {
         Components.instance = this;
     }
 
+    /**
+     * desc
+     * @date 2022-08-08
+     * @param {string} name
+     * @param {object} component
+     */
     add (name, component) {
-        this.components[name] = component;
-        
         if (component.nav)
             this.navComponents[name] = component;
+
+        return this.components[name] = component;
     };
 
+    /**
+     * Checks whether a component exists
+     * @date 2022-08-08
+     * @param {string} name
+     * @return {boolean}
+     */
     exists (name) {
         return this.components[name] ? true : false;
     }
 
+    /**
+     * Returns a component that is associated with the given name
+     * @date 2022-08-08
+     * @param {string} name
+     * @return {object}
+     */
     use (name) {
         if (this.components[name])
             return this.components[name];
@@ -37,6 +55,13 @@ export default new (class Components {
             throw `Component not found: could not find component with name (${name})`;
     }
 
+    /**
+     * Checks whether a given route is within the specified scope
+     * @date 2022-08-08
+     * @param {string | array} scope
+     * @param {string} routeName
+     * @return {boolean}
+     */
     isInScope (scope, routeName) {
         if (scope && scope.includes(routeName) || scope == 'all')
             return true;
@@ -44,6 +69,11 @@ export default new (class Components {
         return false;
     };
 
+    /**
+     * Loops through the navigation components
+     * @date 2022-08-08
+     * @param {function} callback
+     */
     iterateOverComponents (callback) {
         Utils.iterate(this.navComponents, component => {
             if (!this.isInScope(this.navComponents[component].scope, Router.currentRoute.name))
@@ -53,6 +83,12 @@ export default new (class Components {
         });
     };
 
+    /**
+     * Loops through navigation elements of a given component
+     * @date 2022-08-08
+     * @param {object} component
+     * @param {function} callback
+     */
     iterateOverNavItems (component, callback) {
         let { parent, targets: targetClasses } = component.nav;
 
@@ -74,6 +110,12 @@ export default new (class Components {
         });
     };
 
+    /**
+     * Highlights a navigation element that matches the current location path
+     * @date 2022-08-08
+     * @param {object} navItem
+     * @param {object} component
+     */
     hightlightNavItems (navItem, component) {
         if (!navItem.dataset.linkaddress || !navItem.dataset.linkactive)
             return;
@@ -98,6 +140,11 @@ export default new (class Components {
         }
     }
 
+    /**
+     * Loops through all navigation components then their elements
+     * and highlights the element that matches the current location pathname
+     * @date 2022-08-08
+     */
     initHighlightNavItems () {
         this.iterateOverComponents((component) => {
             this.iterateOverNavItems(component, (navItem) => {
@@ -106,6 +153,11 @@ export default new (class Components {
         });
     }
 
+    /**
+     * Loops through all navigation components then their elements
+     * and adds on-click event-listners
+     * @date 2022-08-08
+     */
     onClick () {
         this.iterateOverComponents((component) => {
             this.iterateOverNavItems(component, (navItem) => {
@@ -136,6 +188,10 @@ export default new (class Components {
         });
     }
 
+    /**
+     * Initiates navigation events
+     * @date 2022-08-08
+     */
     initNavEvents () {
         this.onClick();
     };
