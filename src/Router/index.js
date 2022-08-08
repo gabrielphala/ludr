@@ -2,7 +2,7 @@ import Utils from "../Utils";
 import Url from "../Url";
 
 export default new (class Router {
-    constructor() {
+    constructor () {
         if (!Router.instance) {
             this.routes = {};
             this.currentRoute = {};
@@ -13,14 +13,32 @@ export default new (class Router {
         return Router.instance;
     };
 
+    /**
+     * Returns params associated with the current route
+     * @date 2022-08-08
+     * @return {string}
+     */
     get currentParams () {
         return this.currentRoute.params;
     }
 
+    /**
+     * Caches the route and returns it
+     * @date 2022-08-08
+     * @param {string} name
+     * @param {object} route
+     * @return {object}
+     */
     add (name, route) {
-        this.routes[name] = route;
+        return this.routes[name] = route;
     };
 
+    /**
+     * Returns a route that matches the given name
+     * @date 2022-08-08
+     * @param {name} name
+     * @return {object}
+     */
     use (name) {
         if (!this.routes[name])
             throw `Non-existant route: trying to use route (${name}) that doesn't exist!`;
@@ -28,6 +46,13 @@ export default new (class Router {
         return this.routes[name];
     };
 
+    /**
+     * Returns an array with routes that match the given tag
+     * @date 2022-08-08
+     * @param {string} tag
+     * @param {string} attr
+     * @return {array}
+     */
     getRoutesByTag (tag, attr = 'name') {
         const routesToReturn = [];
 
@@ -39,6 +64,12 @@ export default new (class Router {
         return routesToReturn;
     };
 
+    /**
+     * Returns a route that matches the given url
+     * @date 2022-08-08
+     * @param {string} url
+     * @return {object}
+     */
     getRoute (url = location.pathname) {
         let route;
 

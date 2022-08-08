@@ -3,6 +3,12 @@ import Layouts from "../Layouts";
 import Router from "./index";
 
 class Route {
+    /**
+     * Creates a new route
+     * @date 2022-08-08
+     * @param {string} name
+     * @param {object} attr
+     */
     constructor (name, { title, subTitle, url, tags, layout }) {
         this.name = name;
         this.title = title;
@@ -14,6 +20,11 @@ class Route {
         this.blueprint = null;
     }
 
+    /**
+     * Updates the 'document' location of a browser without reloading the whole page
+     * @date 2022-08-08
+     * @param {string} path
+     */
     updateHistory (path) {
         const pageTitle = Config.pageTitle + ' | ' + this.title;
 
