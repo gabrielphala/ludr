@@ -10,14 +10,33 @@ export default new (class Groups {
         Groups.instance = this;
     }
 
+    /**
+     * Caches the group
+     * @date 2022-08-08
+     * @param {string} name
+     * @param {array} routes
+     */
     add (name, routes) {
         this.groups[name] = routes;
     }
 
+    /**
+     * Checks whether the group exists
+     * @date 2022-08-08
+     * @param {name} name
+     * @return {boolean}
+     */
     exists (name) {
         return this.groups[name] ? true : false;
     }
 
+    /**
+     * Gets the group that matches the given name and loops through each route
+     * and finds a route whose url(s) match(es) the current url and returns its component name
+     * @date 2022-08-08
+     * @param {name} name
+     * @return {string}
+     */
     getComponent (name) {
         let componentName;
 
