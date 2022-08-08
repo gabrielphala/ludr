@@ -26,7 +26,7 @@ Ludr.Load();
 ```
 
 ## Layouts
-Define the layout of components to use on page load
+Define the layout of components to use when a page loads
 ___
 
 src\layouts\index.js
@@ -47,9 +47,8 @@ src\layouts\basic.hbs
 {{{ component 'profile' }}}
 ```
 
-
 ## Components
-Building blocks of the application, they are loaded individually and cached and re-used where necessary
+Building blocks of the application, they are loaded individually, cached and re-used where necessary
 ___
 src\components\index.js
 
@@ -62,7 +61,6 @@ Component('profile', {
         foo: 'bar'
     }
 });
-
 ```
 
 src\components\profile.hbs
@@ -86,4 +84,34 @@ export default () => {
         layout: 'basic.layout'
     });
 };
+```
+
+## Events
+___
+src\events\index.js
+```JavaScript
+import { Events } from "Ludr";
+
+export default () => {
+    new (class User {
+        constructor () {
+            super(Sidenav)
+        }
+
+        SignIn (type, e) {
+            e.preventDefault();
+
+            // Auth logic here
+        }
+    });
+};
+```
+
+src\component\logger.hbs
+```handlebars
+<form class="sign-in" onsubmit 'User.SignIn("Admin")'>
+    <input type="email" placeholder="Email address">
+    <input type="password" placeholder="Password">
+    <button>Login</button>
+</form>
 ```
