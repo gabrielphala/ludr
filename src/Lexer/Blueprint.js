@@ -1,4 +1,5 @@
 import { alpha, elements } from "./Chars";
+import eventTypes from "./EventTypes";
 import Utils from "../Utils";
 import Lexer from "./Lexer";
 
@@ -109,7 +110,7 @@ export default class Blueprint extends Lexer {
                 isInsideComponent = true;
             }
 
-            else if (['onsubmit', 'onclick'].includes(token) && this.lookAhead() != '=') {
+            else if (eventTypes.includes(token) && this.lookAhead() != '=') {
                 let outsideParam = true, mainQuotes, end = false, index = this.pos.index, strevents = '';
 
                 while (!end) {
