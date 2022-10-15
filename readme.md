@@ -93,9 +93,9 @@ src\events\index.js
 import { Events } from "Ludr";
 
 export default () => {
-    new (class User {
+    new (class User extends Events {
         constructor () {
-            super(Sidenav)
+            super(User)
         }
 
         SignIn (type, e) {
