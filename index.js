@@ -7,7 +7,7 @@ import Singleton from "./src/Singleton";
 import Events from "./src/Events";
 import Config from "./src/Config";
 
-import { Load } from "./src/App";
+import { Load, Next } from "./src/App";
 
 export {
     Layout,
@@ -18,7 +18,8 @@ export {
     Singleton,
     Events,
     Config,
-    Load
+    Load,
+    Next
 }
 
 export default {
