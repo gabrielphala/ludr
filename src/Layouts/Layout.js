@@ -231,7 +231,7 @@ class Layout {
                     newElement.innerHTML = element.component.innerHTML;
 
                 else
-                    newElement.innerText = element.element.innerText;
+                    newElement.innerHTML = element.element.innerText;
 
                 parent.append(newElement);
             }
@@ -240,7 +240,7 @@ class Layout {
                     document.getElementById(element.id.value) :
                     document.getElementsByClassName(element.id.value)[0]
 
-                elementToChange.innerText = element.element.innerText; 
+                elementToChange.innerHTML = element.element.innerText; 
             }
         })
     }

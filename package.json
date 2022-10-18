@@ -1,6 +1,6 @@
 {
   "name": "ludr",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A JavaScript SPA (Single Page Application) Framework",
   "main": "index.js",
   "scripts": {
