@@ -52,6 +52,9 @@ export default class Events {
 
                     const eventHandler = (e) => {
                         if (this.eventHandlers[func]) {
+                            if (!el.events[event][func][0])
+                                el.events[event][func].shift()
+
                             el.events[event][func].push(e);
 
                             this.eventHandlers[func](...el.events[event][func]);
