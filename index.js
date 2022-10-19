@@ -5,6 +5,7 @@ import Router from "./src/Router";
 import Route from "./src/Router/Route";
 import Singleton from "./src/Singleton";
 import Events from "./src/Events";
+import Middleware from "./src/Middleware";
 import Config from "./src/Config";
 
 import { Load, Next } from "./src/App";
@@ -17,6 +18,7 @@ export {
     Route,
     Singleton,
     Events,
+    Middleware,
     Config,
     Load,
     Next
@@ -30,6 +32,7 @@ export default {
     Route,
     Singleton,
     Events,
+    Middleware,
     Config,
     Load
 }

@@ -1,7 +1,7 @@
 # Ludr.js
 A JavaScript Single Page Application (SPA) Framework
 
-`Under development`
+`Under development`, `Requires the handlebars framework`
 
 ## Usage
 ___
@@ -14,11 +14,15 @@ import layouts from "./layouts";
 import components from "./components";
 import routes from "./routes";
 import events from "./events";
+import groups from "./groups";
+import middleware from "./middleware";
 
 layouts();
 components();
 routes();
 events();
+groups();
+middleware();
 
 Ludr.Config.showInfo = true;
 
@@ -61,6 +65,14 @@ Component('profile', {
         foo: 'bar'
     }
 });
+
+Component('generic.component.1', {
+    path: 'generic-component-1',
+});
+
+Component('generic.component.2', {
+    path: 'generic-component-2'
+});
 ```
 
 src\components\profile.hbs
@@ -68,6 +80,29 @@ src\components\profile.hbs
 ```handlebars
 <p>This is my profile.</p>
 <p>And i know stuff: {{ foo }}</p>
+```
+
+## Groups
+Components can be grouped together and automatically chosen based on the current page
+___
+src\groups\index.js
+
+```JavaScript
+import { Group } from "Ludr";
+
+// when browser is on /generic-page-1, generic.component.1 will be loaded as baisic-group
+Group('basic.group', [
+    { component: 'generic.component.1', url: '/generic-page-1' }
+    { component: 'generic.component.2', url: '/generic-page-2' }
+]);
+```
+
+src\components\another.hbs
+
+```handlebars
+<p>The following component is dynamic</p>
+
+{{{ component 'basic.group' }}}
 ```
 
 ## Routes
@@ -114,4 +149,27 @@ src\component\logger.hbs
     <input type="password" placeholder="Password">
     <button>Login</button>
 </form>
+```
+## Middleware
+Middleware are used for doing somethings before the whole app loads, `Middleware.add` can be overloaded (not recommended) use `Middleware.once` instead
+___
+src\middleware\index.js
+
+```JavaScript
+import { Middleware } from "Ludr";
+
+// Run everywhere
+Middleware.add('all', (next) => {
+    // do stuff
+
+    next() // goes to next middleware
+
+    // returns, do more
+})
+
+// Runs once in the profile page
+Middleware.once('profile', (next) => { next() })
+
+// Runs once in the profile page and once in 'page.name.two'
+Middleware.once(['profile', 'page.name.two'], (next) => { next() })
 ```
