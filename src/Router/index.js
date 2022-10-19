@@ -5,6 +5,7 @@ export default new (class Router {
     constructor () {
         if (!Router.instance) {
             this.routes = {};
+            this.events = { onRouteReady: [] }
             this.currentRoute = {};
 
             Router.instance = this;
@@ -84,5 +85,15 @@ export default new (class Router {
         route.params = Url.getParams(route.url, url);
 
         return route;
+    }
+
+    initOnRouteReady () {
+        this.events.onRouteReady.forEach(eventHandler => {
+            eventHandler()
+        })
+    }
+
+    onRouteReady (callback) {
+        this.events.onRouteReady.push(callback);
     }
 });
