@@ -5,8 +5,10 @@ export default new (class Router {
     constructor () {
         if (!Router.instance) {
             this.routes = {};
-            this.events = { onRouteReady: [] }
             this.currentRoute = {};
+            
+            this.preDefinedEvents = { onRouteReady: [] }
+            this.events = []
 
             Router.instance = this;
         }
@@ -88,12 +90,12 @@ export default new (class Router {
     }
 
     initOnRouteReady () {
-        this.events.onRouteReady.forEach(eventHandler => {
+        this.preDefinedEvents.onRouteReady.forEach(eventHandler => {
             eventHandler()
         })
     }
 
     onRouteReady (callback) {
-        this.events.onRouteReady.push(callback);
+        this.preDefinedEvents.onRouteReady.push(callback);
     }
 });
