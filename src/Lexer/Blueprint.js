@@ -10,6 +10,7 @@ export default class Blueprint extends Lexer {
 
         this.layoutName = name;
         this.blueprint = {};
+        this.events = []
         this.componentTree = [];
     }
 
@@ -157,14 +158,14 @@ export default class Blueprint extends Lexer {
                         resolvedParams.push(param);
                     });
 
-                    events[event.substring(0, lParamPos)] = resolvedParams
+                    events[event.substring(0, lParamPos)] = [token, resolvedParams]
                 });
 
                 this.blueprint[previousElemFOID].modifiers =
                     this.blueprint[previousElemFOID].modifiers.
                     replace(`${token}${this.lookAhead() == ' ' ? ' ' : ''}${mainQuotes + strevents + mainQuotes}`, '');
 
-                this.blueprint[previousElemFOID].events[token] = events;
+                this.events.push(events)
             }
             
             else if (token == 'ludr_component_end') {
@@ -241,7 +242,6 @@ export default class Blueprint extends Lexer {
                         innerHTML: componentInnerHTML
                     },
                     hierachy,
-                    events: {},
                     modifiers,
                     parent
                 };
@@ -268,6 +268,6 @@ export default class Blueprint extends Lexer {
 
         this.eventPositions = eventPositions;
 
-        return this.blueprint;
+        return { blueprint: this.blueprint, events: this.events };
     }
 };

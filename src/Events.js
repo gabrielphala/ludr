@@ -32,42 +32,56 @@ export default class Events {
         });
     }
 
+    getTargets () {
+        this.targets = Array.from(document.querySelectorAll('[data-eventid]'));
+    }
+
+    sortTargets () {
+        this.sortedTargets = {};
+
+        Array.from(this.targets).forEach(element => {
+            this.sortedTargets[element.dataset.eventid] = element;
+        });
+    }
+
     /**
      * Sets event listeners
      * @date 2022-08-08
-     * @param {object} blueprint
+     * @param {object} events
      */
-    setEventListeners (blueprint) {
-        Utils.iterate(blueprint, (element) => {
-            let el = blueprint[element];
+    setEventListeners (events) {
+        this.getTargets()
+        this.sortTargets()
 
-            const target = el.id.type == 'id' ?
-                document.getElementById(el.id.value) :
-                document.getElementsByClassName(el.id.value)[0];
+        const len = Object.getOwnPropertyNames(this.sortedTargets).length;
 
-            Utils.iterate(el.events, event => {
-                Utils.iterate(el.events[event], func => {
-                    // Remove the 'on' prefix, and set event
-                    const eventType = event.substring(2);
+        for (let i = 0; i < len; i++) {
+            Utils.iterate(events[i], event => {
+                // Remove the 'on' prefix, and set event
+                const eventType = events[i][event][0].substring(2);
+                const params = events[i][event][1];
 
-                    const eventHandler = (e) => {
-                        if (this.eventHandlers[func]) {
-                            if (!el.events[event][func][0])
-                                el.events[event][func].shift()
+                if (!params[0])
+                    params.shift()
 
-                            el.events[event][func].push(e);
+                const originalParams = params.length
 
-                            this.eventHandlers[func](...el.events[event][func]);
-                        }
-                    }
+                const eventHandler = (e) => {
+                    // remove old event object
+                    if (params.length > originalParams)
+                        params.shift()
+                    
+                    params.push(e)
 
-                    // remove prior event
-                    target.removeEventListener(eventType, eventHandler);
+                    this.eventHandlers[event](...params)
+                }
 
-                    // add new event
-                    target.addEventListener(eventType, eventHandler);
-                })
+                // remove prior event
+                this.sortedTargets[i].removeEventListener(eventType, eventHandler);
+
+                // add new event
+                this.sortedTargets[i].addEventListener(eventType, eventHandler);
             })
-        })
+        }
     }
 }

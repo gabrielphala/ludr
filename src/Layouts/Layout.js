@@ -75,13 +75,15 @@ class Layout {
      * @param {array} eventsPositions
      */
     removeEventDefinitions (eventsPositions) {
-        let removedLength = 0;
+        let removedLength = 0, count = 0;
 
         eventsPositions.forEach(event => {
+            const eventPointer = `data-eventid="${count}"`
             const eventDefinition = this.content.substring(event.start - removedLength, event.end - removedLength);
-            this.content = this.content.replace(eventDefinition, '');
+            this.content = this.content.replace(eventDefinition, eventPointer);
 
-            removedLength += eventDefinition.length;
+            removedLength += eventDefinition.length - eventPointer.length;
+            count++;
         });
     }
 
@@ -104,7 +106,10 @@ class Layout {
 
             const blueprint = new Blueprint(this.name, this.content);
 
-            router.blueprint = blueprint.makeBlueprint();
+            const { blueprint: _blueprint, events } = blueprint.makeBlueprint();
+
+            router.blueprint = _blueprint
+            router.events = events
 
             this.removeEventDefinitions(blueprint.eventPositions)
             this.removeLabels();

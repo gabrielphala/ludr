@@ -63,7 +63,7 @@ export default new (class Layouts {
 
             const router = Router.use(Router.currentRoute.name);
 
-            // (new Events).setEventListeners(router.blueprint);
+            (new Events).setEventListeners(router.events);
 
             Router.initOnRouteReady()
         })
@@ -88,7 +88,7 @@ export default new (class Layouts {
             layout.removeUnusedElements(oldRoute.blueprint, currentRoute.blueprint);
             layout.addNewElements(oldRoute.blueprint, currentRoute.blueprint);
 
-            // (new Events).setEventListeners(currentRoute.blueprint);
+            (new Events).setEventListeners(currentRoute.events);
             Router.initOnRouteReady()
             next()
         })
