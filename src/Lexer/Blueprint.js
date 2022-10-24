@@ -10,8 +10,17 @@ export default class Blueprint extends Lexer {
 
         this.layoutName = name;
         this.blueprint = {};
-        this.events = []
+
+        this.events = {
+            counter: 0,
+            list: []
+        }
+
         this.componentTree = [];
+    }
+
+    set layout (newLayout) {
+        this.str = newLayout
     }
 
     get layout () {
@@ -76,14 +85,94 @@ export default class Blueprint extends Lexer {
         return { modifier, pos };
     }
 
+    getEvents (str) {
+        let events = []
+
+        for (let i = 0; i < str.length; i++) {
+            let event = '';
+
+            while (alpha.includes(str[i])) {
+                event += str[i];
+
+                i++;
+            };
+
+            if (eventTypes.includes(event))
+                events.push(event)
+        }
+
+        return events
+    }    
+
+    parseEvents (token, tokenIndex, currentIndex) {
+        let outsideParam = true, mainQuotes, end = false, index = tokenIndex, strevents = '';
+
+        while (!end) {
+            ++index;
+
+            if (outsideParam && this.layout[index] == ' ') { continue; }
+
+            else if (mainQuotes && `"'`.includes(this.layout[index]) && this.layout[index] != mainQuotes) {
+                outsideParam = !outsideParam;
+            }
+
+            else if (!mainQuotes && (this.layout[index] == '\'' || this.layout[index] == '"')) {
+                mainQuotes = this.layout[index];
+
+                continue;
+            }
+
+            else if (mainQuotes && this.layout[index] == mainQuotes) {
+                end = true;
+
+                const eventPointer = `data-eventid="${this.events.counter}"`,
+                    defStart = tokenIndex - token.length,
+                    defEnd = index + 1;
+
+                const eventDefinition = this.layout.substring(defStart, defEnd);
+
+                this.layout = this.layout.replace(eventDefinition, eventPointer);
+
+                this.pos.index = currentIndex
+
+                this.events.counter++;
+
+                continue;
+            }
+
+            strevents += this.layout[index];
+        }
+
+        const events = {};
+
+        const eventArr = strevents.trim().split(';');
+
+        eventArr.forEach(event => {
+            const lParamPos = event.indexOf('(');
+
+            const params = event.substring(lParamPos + 1, event.length - 1);
+
+            const resolvedParams = [];
+
+            params.split(',').forEach(param => {
+                if (`'"`.includes(param.charAt(0)))
+                    return resolvedParams.push(param.substring(1, param.length - 1))
+
+                resolvedParams.push(param);
+            });
+
+            events[event.substring(0, lParamPos)] = [token, resolvedParams]
+        });
+
+        this.events.list.push(events)
+    }
+
     makeBlueprint () {
         let previousToken,
-            previousElemFOID,
             hierachy = 0,
             isInsideComponent = false,
             totalComponentLines = 1,
-            classes = [],
-            eventPositions = [];
+            classes = [];
 
         while (this.currentChar != null) {
             if (this.currentChar == "\n" && isInsideComponent) {
@@ -110,63 +199,6 @@ export default class Blueprint extends Lexer {
 
                 isInsideComponent = true;
             }
-
-            else if (eventTypes.includes(token) && this.lookAhead() != '=') {
-                let outsideParam = true, mainQuotes, end = false, index = this.pos.index, strevents = '';
-
-                while (!end) {
-                    ++index;
-
-                    if (outsideParam && this.layout[index] == ' ') { continue; }
-
-                    else if (mainQuotes && `"'`.includes(this.layout[index]) && this.layout[index] != mainQuotes) {
-                        outsideParam = !outsideParam;
-                    }
-
-                    else if (!mainQuotes && (this.layout[index] == '\'' || this.layout[index] == '"')) {
-                        mainQuotes = this.layout[index];
-
-                        continue;
-                    }
-
-                    else if (mainQuotes && this.layout[index] == mainQuotes) {
-                        end = true;
-
-                        eventPositions.push({ start: this.pos.index - token.length, end: index + 1 });
-
-                        continue;
-                    }
-                        
-                    strevents += this.layout[index];
-                }
-
-                const events = {};
-
-                const eventArr = strevents.trim().split(';');
-
-                eventArr.forEach(event => {
-                    const lParamPos = event.indexOf('(');
-
-                    const params = event.substring(lParamPos + 1, event.length - 1);
-
-                    const resolvedParams = [];
-
-                    params.split(',').forEach(param => {
-                        if (`'"`.includes(param.charAt(0)))
-                            return resolvedParams.push(param.substring(1, param.length - 1)) 
-
-                        resolvedParams.push(param);
-                    });
-
-                    events[event.substring(0, lParamPos)] = [token, resolvedParams]
-                });
-
-                this.blueprint[previousElemFOID].modifiers =
-                    this.blueprint[previousElemFOID].modifiers.
-                    replace(`${token}${this.lookAhead() == ' ' ? ' ' : ''}${mainQuotes + strevents + mainQuotes}`, '');
-
-                this.events.push(events)
-            }
             
             else if (token == 'ludr_component_end') {
                 if (this.currentComponent.parent == 'none')
@@ -178,11 +210,8 @@ export default class Blueprint extends Lexer {
             else if (elements.includes(token) && this.lookBehind(token) == '<') {
                 ++hierachy;
 
-                if (isInsideComponent && hierachy != this.currentComponent.rootHierachy) 
-                    continue;
-
-                const lastCharPosOTag = this.layout.indexOf('>', this.pos.index);
-                const modifiers = this.layout.substring(this.pos.index, lastCharPosOTag);
+                let lastCharPosOTag = this.layout.indexOf('>', this.pos.index);
+                let modifiers = this.layout.substring(this.pos.index, lastCharPosOTag);
 
                 let { modifier: id, pos: idPod } = this.getModifier('id', lastCharPosOTag);
                 let { modifier: _class, pos: classPos } = this.getModifier('class', lastCharPosOTag);
@@ -190,6 +219,29 @@ export default class Blueprint extends Lexer {
                 _class = _class ? _class.split(' ')[0] : null;
 
                 let classIsUniq = false;
+
+                let events = this.getEvents(modifiers)
+
+                let currentTokenIndex = this.pos.index;
+
+                events.forEach(event => {
+                    const eventDefPos = modifiers.indexOf(event);
+
+                    if (eventDefPos != -1) {
+                        this.parseEvents(
+                            event,
+                            eventDefPos + event.length + this.pos.index,
+                            currentTokenIndex
+                        )
+                    }
+                });
+
+                lastCharPosOTag = this.layout.indexOf('>', this.pos.index);
+
+                modifiers = this.layout.substring(this.pos.index, lastCharPosOTag);
+
+                if (isInsideComponent && hierachy != this.currentComponent.rootHierachy)
+                    continue;
 
                 if (!classes.includes(_class)) {
                     classes.push(_class)
@@ -220,12 +272,6 @@ export default class Blueprint extends Lexer {
 
                 let elementStartPos = this.layout.indexOf(`<${token + modifiers}>`, this.pos.index - token.length - 2) + `<${token + modifiers}>`.length;
 
-                if (isInsideComponent) {
-                    let componentEndPos = this.layout.indexOf(` ludr_component_end`, elementStartPos) - `</${token}>`.length - 2;
-                    
-                    componentInnerHTML = this.layout.substring(elementStartPos, componentEndPos)
-                }
-
                 this.blueprint[firstOrderId] = {
                     id: {
                         type: id ? 'id' : 'class',
@@ -246,8 +292,6 @@ export default class Blueprint extends Lexer {
                     parent
                 };
 
-                previousElemFOID = firstOrderId;
-
                 if (this.currentComponent)
                     this.currentComponent.hasRoot = true;
             }
@@ -261,13 +305,13 @@ export default class Blueprint extends Lexer {
         }
 
         this.getNonParents((element) => {
-            let endPos = this.layout.indexOf(`</${element.element.type}>`, element.element.startPos);
+            let suffix = element.component.isComponent ? ' ludr_component_end' : ''
+
+            let endPos = this.layout.indexOf(`</${element.element.type}>${suffix}`, element.element.startPos);
 
             element.element.innerText = this.layout.substring(element.element.startPos, endPos);
         })
 
-        this.eventPositions = eventPositions;
-
-        return { blueprint: this.blueprint, events: this.events };
+        return { blueprint: this.blueprint, events: this.events.list, layout: this.layout };
     }
 };
