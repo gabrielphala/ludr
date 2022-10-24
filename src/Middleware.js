@@ -17,37 +17,20 @@ export default new (class Middleware {
         return this.middlewareIndex++;
     }
 
-    /**
-     * Creates middleware
-     * 
-     * Can be overloaded
-     * @date 2022-08-08
-     * @param {scope} scope
-     * @param {callback} callback
-     */
-    add (scope, callback) {
-        this.addMiddleware(scope, callback)
+    repeat (scope, callback) {
+        this.add(scope, callback)
     }
 
     /**
-     * Creates once off middleware
-     * 
-     * Can not be overloaded
      * @date 2022-08-08
      * @param {scope} scope
      * @param {callback} callback
      */
     once (scope, callback) {
-        this.addMiddleware(scope, callback, true)
-    }
+        this.add(scope, callback, true)
+    };
 
-    /**
-     * @date 2022-08-08
-     * @param {scope} scope
-     * @param {callback} callback
-     * @param {once = false} once
-     */
-    addMiddleware (scope, callback, once = false) {
+    add (scope, callback, once = false) {
         let _scope = scope;
 
         scope = !callback ? null : scope;
@@ -57,14 +40,15 @@ export default new (class Middleware {
 
         this.middleware.push({
             scope,
-            once,
             hasRun: false,
+            once,
             callback
         });
-    };
+    }
 
     /**
      * Removes the last middleware
+     * @deprecated since 1.0.4
      * @date 2022-08-08
      */
     pop () {
@@ -99,7 +83,7 @@ export default new (class Middleware {
     exec () {
         let index = this.middlewareIndex;
 
-        const { callback, once, hasRun } = this.readyMiddleware[this.index] || { callback: 'done' };
+        const { callback, hasRun, once } = this.readyMiddleware[this.index] || { callback: 'done' };
 
         if (typeof callback != 'function')
             return;
@@ -109,7 +93,7 @@ export default new (class Middleware {
 
         else if (once && !hasRun)
             this.readyMiddleware[index].hasRun = true;
-        
+
         callback(() => this.exec());
     }
 
