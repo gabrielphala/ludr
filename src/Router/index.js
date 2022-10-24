@@ -67,6 +67,26 @@ export default new (class Router {
         return routesToReturn;
     };
 
+    getRoutesByTags (tags, attr = 'name') {
+        const routesToReturn = [];
+
+        tags = Array.isArray(tags) ? tags : [tags]
+
+        Utils.iterate(this.routes, (routeName) => {
+            let isPageAdded = false;
+
+            tags.forEach(tag => {
+                if (!isPageAdded && this.routes[routeName].tags && this.routes[routeName].tags.includes(tag)) {
+                    isPageAdded = true;
+
+                    routesToReturn.push(this.routes[routeName][attr]);
+                }
+            });
+        });
+
+        return routesToReturn;
+    };
+
     /**
      * Returns a route that matches the given url
      * @date 2022-08-08
@@ -85,6 +105,7 @@ export default new (class Router {
             throw `Route not found: there is no pre-defined route that matches the path: (${url})`;
 
         route.params = Url.getParams(route.url, url);
+        route.query = new URLSearchParams(location.search)
 
         return route;
     }
