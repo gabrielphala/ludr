@@ -13,7 +13,8 @@ class Layout {
         this.name = name;
         this.content = '';
         this.componentCallStack = {};
-        this.data = { ...Env.globalContainer, ...data };
+
+        this.data = Utils.merge({ mainObj: Env.globalContainer, refObj: data });
 
         path = Utils.hasExt(path) ? path : `${path}.${Config.viewsExt}`;
 
@@ -57,9 +58,12 @@ class Layout {
             if (this.componentCallStack[componentName].split(' ').indexOf(componentName) > 0)
                 throw `Recursive inclusion of component: (${componentName})`;
 
+             // so we can append 'ludr_component_end' without getting unwanted results
+            let content = component.content.trim()
+
             this.content = this.content.replace(
                 new RegExp(`@ludr_component${components[i]}end`, 'gi'),
-                `${parent != 'none' ? component.content : 'ludr_component_start ' + componentName + ';' + component.content + ' ludr_component_end'}`
+                `${parent != 'none' ? content : 'ludr_component_start ' + componentName + ';' + content + ' ludr_component_end'}`
             )
 
             if (nestedComponents)
@@ -67,24 +71,6 @@ class Layout {
 
             component.linkActiveClass = component.linkActiveClass || Utils.extractLinkActiveClass(component.content).trim();
         }
-    }
-
-    /**
-     * Removes event descriptions from layout
-     * @date 2022-08-08
-     * @param {array} eventsPositions
-     */
-    removeEventDefinitions (eventsPositions) {
-        let removedLength = 0, count = 0;
-
-        eventsPositions.forEach(event => {
-            const eventPointer = `data-eventid="${count}"`
-            const eventDefinition = this.content.substring(event.start - removedLength, event.end - removedLength);
-            this.content = this.content.replace(eventDefinition, eventPointer);
-
-            removedLength += eventDefinition.length - eventPointer.length;
-            count++;
-        });
     }
 
     /**
@@ -106,12 +92,13 @@ class Layout {
 
             const blueprint = new Blueprint(this.name, this.content);
 
-            const { blueprint: _blueprint, events } = blueprint.makeBlueprint();
+            const { blueprint: _blueprint, events, layout } = blueprint.makeBlueprint();
+
+            this.content = layout;
 
             router.blueprint = _blueprint
             router.events = events
 
-            this.removeEventDefinitions(blueprint.eventPositions)
             this.removeLabels();
 
             next();
@@ -219,7 +206,7 @@ class Layout {
 
             if (!oldElement) {
                 let parent = element.parent.id.value == 'root' ?
-                    document.body :
+                    document.getElementsByClassName('ludr-container')[0] :
                     (
                         element.parent.id.type == 'id' ?
                             document.getElementById(element.parent.id.value) :
@@ -229,14 +216,13 @@ class Layout {
                 const newElement = document.createElement(element.element.type);
 
                 this.getModifierKeyValuePair(element.modifiers.trim(), (key, value) => {
-                    newElement.setAttribute(key.trim(), value);
+                    key = key.trim();
+
+                    if (key)
+                        newElement.setAttribute(key, value);
                 })
 
-                if (element.component.isComponent)
-                    newElement.innerHTML = element.component.innerHTML;
-
-                else
-                    newElement.innerHTML = element.element.innerText;
+                newElement.innerHTML = element.element.innerText;
 
                 parent.append(newElement);
             }
