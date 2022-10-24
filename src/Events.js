@@ -1,3 +1,4 @@
+import Router from "./Router";
 import Utils from "./Utils";
 
 export default class Events {
@@ -10,8 +11,9 @@ export default class Events {
     constructor (obj = null) {
         this.eventHandlers = !Events.instance ? {} : Events.instance.eventHandlers;
 
-        if (obj)
+        if (obj) 
             this.addEventHandlers(obj);
+        
 
         Events.instance = !Events.instance ? this : Events.instance;
 
@@ -56,6 +58,9 @@ export default class Events {
         const len = Object.getOwnPropertyNames(this.sortedTargets).length;
 
         for (let i = 0; i < len; i++) {
+            if (this.sortedTargets[i].dataset && this.sortedTargets[i].dataset.eventsadded)
+                continue;
+
             Utils.iterate(events[i], event => {
                 // Remove the 'on' prefix, and set event
                 const eventType = events[i][event][0].substring(2);
@@ -68,20 +73,23 @@ export default class Events {
 
                 const eventHandler = (e) => {
                     // remove old event object
-                    if (params.length > originalParams)
-                        params.shift()
+                    if (params.length > originalParams) 
+                        params.pop()
                     
                     params.push(e)
 
-                    this.eventHandlers[event](...params)
-                }
+                    if (!this.eventHandlers[event])
+                        throw `No corresponding event handler: there is no handler with the name: (${event})`;
 
-                // remove prior event
-                this.sortedTargets[i].removeEventListener(eventType, eventHandler);
+                    this.eventHandlers[event](...params)
+
+                }
 
                 // add new event
                 this.sortedTargets[i].addEventListener(eventType, eventHandler);
             })
+
+            this.sortedTargets[i].setAttribute('data-eventsadded', true)
         }
     }
 }

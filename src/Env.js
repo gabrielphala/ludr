@@ -24,7 +24,7 @@ export default new (class Env {
     put (key, value, isGlobal) {
         if (!isGlobal)
             return this.container[key] = value;
-
+            
         this.globalContainer[key] = value;
     }
 
@@ -35,7 +35,7 @@ export default new (class Env {
      * @return {number | string | object}
      */
     get (key) {
-        return this.container[key];
+        return this.container[key] || this.globalContainer[key];
     }
 
     /**

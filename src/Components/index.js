@@ -12,6 +12,11 @@ export default new (class Components {
         this.navComponents = {};
         this.oldNavItems = {};
 
+        this.events = {
+            beforeLoad: [],
+            loaded: []
+        }
+
         Components.instance = this;
     }
 
@@ -140,6 +145,12 @@ export default new (class Components {
         }
     }
 
+    unhighlightOld () {
+        Utils.iterate(this.oldNavItems, navItem => {
+            this.oldNavItems[navItem].classList.remove(this.oldNavItems[navItem].dataset.linkactive)
+        })
+    }
+
     /**
      * Loops through all navigation components then their elements
      * and highlights the element that matches the current location pathname
@@ -161,22 +172,17 @@ export default new (class Components {
     onClick () {
         this.iterateOverComponents((component) => {
             this.iterateOverNavItems(component, (navItem) => {
-                if (!navItem.dataset.linkaddress || !navItem.dataset.linkactive)
+                if (!navItem.dataset.linkaddress || !navItem.dataset.linkactive || navItem.dataset.eventsadded)
                     return;
 
-                // the cloning and replacing process, removes old events and prevents
-                // the same event being fired multiple times
-                const navItemClone = navItem.cloneNode(true);
+                navItem.setAttribute('data-eventsadded', true)
 
-                navItem.replaceWith(navItemClone);
-
-                navItemClone.addEventListener('click', async (e) => {
+                navItem.addEventListener('click', async (e) => {
                     // replace components with new ones, corresponding to the new page
                     Next(e.currentTarget.dataset.linkaddress);
-
+                    
                     // de-activate previosly activated navItems
-                    if (this.oldNavItems[component.name])
-                        this.oldNavItems[component.name].classList.remove(e.currentTarget.dataset.linkactive);
+                    this.unhighlightOld()
 
                     // if some nav components have been modified, re-set events
                     this.onClick();
@@ -196,22 +202,22 @@ export default new (class Components {
         this.onClick();
     };
 
-    // initEvents (type) {
-    //     this._events[type].forEach(componentName => {
-    //         const component = this._components[componentName];
+    initEvents (type) {
+        this.events[type].forEach(componentName => {
+            const component = this.components[componentName];
 
-    //         if (!this.isInScope(component.scope, Router.currentRoute.name))
-    //             return;
+            if (!this.isInScope(component.scope, Router.currentRoute.name))
+                return;
 
-    //         component.events[type](this._components[componentName]);
-    //     });
-    // }
+            component.events[type](this.components[componentName]);
+        });
+    }
 
-    // beforeLoad (name) {
-    //     this._events.beforeLoad.push(name);
-    // }
+    beforeLoad (name) {
+        this.events.beforeLoad.push(name);
+    }
 
-    // loaded (name) {
-    //     this._events.loaded.push(name);
-    // }
+    loaded (name) {
+        this.events.loaded.push(name);
+    }
 });

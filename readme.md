@@ -17,12 +17,12 @@ import events from "./events";
 import groups from "./groups";
 import middleware from "./middleware";
 
+routes();
+middleware();
 layouts();
 components();
-routes();
-events();
 groups();
-middleware();
+events();
 
 Ludr.Config.showInfo = true;
 
@@ -163,7 +163,6 @@ Middleware.add('all', (next) => {
     // do stuff
 
     next() // goes to next middleware
-
     // returns, do more
 })
 

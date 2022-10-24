@@ -18,8 +18,9 @@ class Component {
         this.linkActiveClass = '';
 
         this._content = '';
-
-        this.data = { ...Env.globalContainer, ...data };
+        this.events = {}
+        
+        this.data = Utils.merge({ mainObj: Env.globalContainer, refObj: data });
 
         path = Utils.hasExt(path) ? path : `${path}.${Config.viewsExt}`;
 
@@ -32,6 +33,22 @@ class Component {
 
     set content (content) {
         this._content = content;
+    }
+
+    onBeforeLoad (callback) {
+        Components.beforeLoad(this.name);
+
+        this.events.beforeLoad = callback;
+
+        return this;
+    }
+
+    onLoaded (callback) {
+        Components.loaded(this.name);
+
+        this.events.loaded = callback;
+
+        return this;
     }
 };
 

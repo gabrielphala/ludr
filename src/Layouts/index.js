@@ -55,6 +55,8 @@ export default new (class Layouts {
         this.layouts[name].build();
 
         Middleware.once(() => {
+            Components.initEvents('beforeLoad');
+
             Utils.prependToBody(this.layouts[name].content)
 
             Components.initNavEvents();
@@ -64,6 +66,8 @@ export default new (class Layouts {
             const router = Router.use(Router.currentRoute.name);
 
             (new Events).setEventListeners(router.events);
+
+            Components.initEvents('loaded');
 
             Router.initOnRouteReady()
         })
@@ -85,12 +89,22 @@ export default new (class Layouts {
             layout.build();
             
         Middleware.once((next) => {
+            Components.initEvents('beforeLoad');
+            
             layout.removeUnusedElements(oldRoute.blueprint, currentRoute.blueprint);
             layout.addNewElements(oldRoute.blueprint, currentRoute.blueprint);
 
             (new Events).setEventListeners(currentRoute.events);
+
+            Components.initEvents('loaded');
+
             Router.initOnRouteReady()
+            
             next()
         })
+    }
+
+    reload () {
+        Components.initEvents('loaded');
     }
 });
