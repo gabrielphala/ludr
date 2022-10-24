@@ -18,13 +18,15 @@ export const Load = () => {
     }
 
     Utils.setUpHandleBarsHelpers();
+    
+    Utils.detectNavigation();
 
     const route = Router.getRoute();
 
     Router.currentRoute = route;
 
     Layouts.build(route.layout);
-
+    
     Middleware.run();
 }
 
@@ -44,4 +46,10 @@ export const Next = (path) => {
     Middleware.run();
 
     nextRoute.updateHistory(path);
+}
+
+export const Reload = () => {
+    Layouts.reload();
+
+    Middleware.run();
 }
