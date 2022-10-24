@@ -15,6 +15,8 @@ class Route {
         this.subTitle = subTitle;
         this.url = url;
         this.tags = tags;
+        this.params = {};
+        this.query = {};
         this.layout = layout;
 
         this.blueprint = null;
