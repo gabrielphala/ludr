@@ -1,4 +1,5 @@
 import Env from "./Env";
+import { Next } from "./App";
 
 class Utils {
     /**
@@ -19,6 +20,12 @@ class Utils {
 
         document.body.prepend(ludrContainer);
     };
+
+    static detectNavigation () {
+        window.onpopstate = (e) => {
+            Next(e.currentTarget.window.location.pathname)
+        };
+    }
 
     /**
      * Fetch
@@ -71,7 +78,6 @@ class Utils {
      * @date 2022-08-08
      * @param { refObj, mainObj, parents = [] } data
      * @return {object}
-     * @deprecated since development
      */
     static merge ({ refObj, mainObj, parents = [] }) {
         for (const key in refObj) {
