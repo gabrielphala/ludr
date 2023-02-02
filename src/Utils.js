@@ -58,6 +58,10 @@ class Utils {
         return replaceValue;
     };
 
+    static getLastElement (arr) {
+        return arr[arr.length - 1]
+    };
+
     /**
      * Loops through an object
      * @date 2022-08-08

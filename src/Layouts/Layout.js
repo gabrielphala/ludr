@@ -151,22 +151,10 @@ class Layout {
         }
     }
 
-    /**
-     * removes element by classname
-     * @date 2022-08-08
-     * @param {string} className
-     */
-    removeClassElement (className) {
-        document.getElementsByClassName(className)[0].remove();
-    }
-
-    /**
-     * removes element by id
-     * @date 2022-08-08
-     * @param {string} idName
-     */
-    removeIdElement (idName) {
-        document.getElementById(idName).remove();
+    getElement (element) {
+        return element.id.type == 'id' ?
+            document.getElementById(element.id.value) :
+            document.getElementsByClassName(element.id.value)[0]
     }
 
     /**
@@ -178,19 +166,39 @@ class Layout {
     removeUnusedElements (oldBlueprint, currentBlueprint) {
         let removedParents = [];
 
-        Utils.iterate(oldBlueprint, element => {
-            if (!currentBlueprint[element]) {
-                if (oldBlueprint[element].isParent)
-                    removedParents.push(element)
+        // get element indices
+        let currentElementIndex = Utils.getLastElement(currentBlueprint)
 
-                if (!removedParents.includes(oldBlueprint[element].parent.id.value)) {
-                    if (oldBlueprint[element].id.type == 'class')
-                        return this.removeClassElement(oldBlueprint[element].id.value);
+        for (let i = 0; i < oldBlueprint.length - 1; i++) {
+            let element = oldBlueprint[i],
+                id = element.id.value;
 
-                    return this.removeIdElement(oldBlueprint[element].id.value);
-                }
-            }
-        })
+            if (currentElementIndex[id] >= 0 && (
+                this.haveSameParent(
+                    element.parent.id, 
+                    currentBlueprint[currentElementIndex[id]].parent.id
+                )
+            )) continue;
+
+            if (element.isParent)
+                removedParents.push(id)
+
+            if (!removedParents.includes(element.parent.id.value))
+                this.getElement(element).remove();
+        }
+    }
+
+    getParent (element) {
+        return element.parent.id.value == 'root' ?
+            document.getElementsByClassName('ludr-container')[0] :
+            this.getElement(element.parent)
+    }
+
+    haveSameParent (parent1Id, parent2Id) {
+        return (
+            parent1Id.value == parent2Id.value &&
+            parent1Id.type == parent2Id.type 
+        )
     }
 
     /**
@@ -200,18 +208,18 @@ class Layout {
      * @param {object} currentBlueprint
      */
     addNewElements (oldBlueprint, currentBlueprint) {
-        Utils.iterate(currentBlueprint, elementName => {
-            const element = currentBlueprint[elementName],
-                oldElement = oldBlueprint[elementName];
+        let currentElementIndex = Utils.getLastElement(currentBlueprint),
+            oldElementIndex = Utils.getLastElement(oldBlueprint);
 
-            if (!oldElement) {
-                let parent = element.parent.id.value == 'root' ?
-                    document.getElementsByClassName('ludr-container')[0] :
-                    (
-                        element.parent.id.type == 'id' ?
-                            document.getElementById(element.parent.id.value) :
-                            document.getElementsByClassName(element.parent.id.value)[0]
-                    )
+        for (let i = 0; i < currentBlueprint.length - 1; i++) {
+            const element = currentBlueprint[i],
+                id = element.id.value,
+                oldElement = oldBlueprint[oldElementIndex[id]];
+
+            if (!(oldElementIndex[id] >= 0) || oldElementIndex[id] >= 0 &&
+                !this.haveSameParent(element.parent.id, oldElement.parent.id)) {
+
+                let previousElement = currentBlueprint[currentElementIndex[id] - 1]
 
                 const newElement = document.createElement(element.element.type);
 
@@ -224,16 +232,25 @@ class Layout {
 
                 newElement.innerHTML = element.element.innerText;
 
-                parent.append(newElement);
-            }
-            else if (oldElement && (oldElement.element.innerText != element.element.innerText)) {
-                const elementToChange = element.id.type == 'id' ?
-                    document.getElementById(element.id.value) :
-                    document.getElementsByClassName(element.id.value)[0]
+                if (previousElement && element.hierachy == previousElement.hierachy) {
+                    let sibling = this.getElement(previousElement)
 
-                elementToChange.innerHTML = element.element.innerText; 
+                    sibling.parentNode.insertBefore(newElement, sibling.nextSibling)
+                }
+
+                else {
+                    let parent = this.getParent(element)
+
+                    parent.append(newElement);
+                }
             }
-        })
+
+            else if (oldElement && (oldElement.element.innerText != element.element.innerText)) {
+                const elementToChange = this.getElement(element)
+
+                elementToChange.innerHTML = element.element.innerText;
+            }
+        }
     }
 }
 
@@ -244,4 +261,4 @@ class Layout {
  * @param {string} path
  * @return {Layout}
  */
-export default (name, path) => Layouts.add(name, new Layout(name, path));
+export default (name, path) => Layouts.add(name, new Layout(name, path || name));

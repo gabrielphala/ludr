@@ -3,6 +3,7 @@ import Layouts from "./Layouts"
 import Config from "./Config";
 import Utils from "./Utils";
 import Middleware from "./Middleware";
+import Components from "./Components";
 
 /**
  * Load route
@@ -46,6 +47,10 @@ export const Next = (path) => {
     Middleware.run();
 
     nextRoute.updateHistory(path);
+
+    Components.initNavEvents();
+
+    Components.initHighlightNavItems();
 }
 
 export const Reload = () => {

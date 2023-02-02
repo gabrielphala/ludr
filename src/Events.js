@@ -64,7 +64,7 @@ export default class Events {
             Utils.iterate(events[i], event => {
                 // Remove the 'on' prefix, and set event
                 const eventType = events[i][event][0].substring(2);
-                const params = events[i][event][1];
+                const params = JSON.parse(JSON.stringify(events[i][event][1]));
 
                 if (!params[0])
                     params.shift()
@@ -72,6 +72,7 @@ export default class Events {
                 const originalParams = params.length
 
                 const eventHandler = (e) => {
+                    e.preventDefault();
                     // remove old event object
                     if (params.length > originalParams) 
                         params.pop()

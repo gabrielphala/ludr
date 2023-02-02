@@ -1,4 +1,4 @@
-import { alpha, elements } from "./Chars";
+import { alpha, elements, singletonElements } from "./Chars";
 import eventTypes from "./EventTypes";
 import Utils from "../Utils";
 import Lexer from "./Lexer";
@@ -9,7 +9,7 @@ export default class Blueprint extends Lexer {
         super(layout);
 
         this.layoutName = name;
-        this.blueprint = {};
+        this.blueprint = [];
 
         this.events = {
             counter: 0,
@@ -17,6 +17,7 @@ export default class Blueprint extends Lexer {
         }
 
         this.componentTree = [];
+        this.elementIndex = {};
     }
 
     set layout (newLayout) {
@@ -34,37 +35,37 @@ export default class Blueprint extends Lexer {
     getParent (hierachy) {
         let parent = {
             id: {
+                type: 'root',
                 value: 'root'
             }
         };
 
-        let parentName;
+        for (let i = this.blueprint.length - 1; i >= 0; i--) {
+            const element = this.blueprint[i]
 
-        Utils.iterate(this.blueprint, elementName => {
-            if (this.blueprint[elementName].hierachy == hierachy) {
+            if (element.hierachy == hierachy) {
                 parent = {
                     id: {
-                        type: this.blueprint[elementName].id.type,
-                        value: this.blueprint[elementName].id.value
+                        type: element.id.type,
+                        value: element.id.value
                     }
                 };
 
-                parentName = elementName;
-            }
-        })
+                this.blueprint[this.elementIndex[element.id.value]].isParent = true;
 
-        if (parentName)
-            this.blueprint[parentName].isParent = true; 
+                break;
+            }
+        }
 
         return parent;
     }
 
     getNonParents (callback) {
-        Utils.iterate(this.blueprint, element => {
-            if (!this.blueprint[element].isParent) {
-                callback(this.blueprint[element])
+        this.blueprint.forEach(element => {
+            if (!element.isParent) {
+                callback(element)
             }
-        })
+        });
     }
 
     getModifier (name, endPos) {
@@ -170,6 +171,7 @@ export default class Blueprint extends Lexer {
     makeBlueprint () {
         let previousToken,
             hierachy = 0,
+            elementCount = 0,
             isInsideComponent = false,
             totalComponentLines = 1,
             classes = [];
@@ -261,18 +263,20 @@ export default class Blueprint extends Lexer {
                 if (!hasClass && !hasId)
                     throw errorMsg;
 
-                const parent = this.getParent(hierachy - 1);
-
                 if (isInsideComponent && this.currentComponent.hasRoot)
                     throw `Root element count exeeded: Component (${this.currentComponent.name}) has a root element.`;
 
                 const firstOrderId = id ? id : _class;
 
+                const parent = this.getParent(hierachy - 1);
+
                 let componentInnerHTML;
 
                 let elementStartPos = this.layout.indexOf(`<${token + modifiers}>`, this.pos.index - token.length - 2) + `<${token + modifiers}>`.length;
 
-                this.blueprint[firstOrderId] = {
+                this.elementIndex[firstOrderId] = elementCount++
+
+                this.blueprint.push({
                     id: {
                         type: id ? 'id' : 'class',
                         value: firstOrderId
@@ -290,10 +294,13 @@ export default class Blueprint extends Lexer {
                     hierachy,
                     modifiers,
                     parent
-                };
+                });
 
                 if (this.currentComponent)
                     this.currentComponent.hasRoot = true;
+
+                if (singletonElements.includes(token))
+                    hierachy--;
             }
 
             if (elements.includes(token) && this.lookBehind(token) == '/' && this.lookBehind(token, 2) == '<')
@@ -312,6 +319,12 @@ export default class Blueprint extends Lexer {
             element.element.innerText = this.layout.substring(element.element.startPos, endPos);
         })
 
-        return { blueprint: this.blueprint, events: this.events.list, layout: this.layout };
+        this.blueprint.push(this.elementIndex)
+
+        return { 
+            blueprint: this.blueprint,
+            events: this.events.list,
+            layout: this.layout
+        };
     }
 };

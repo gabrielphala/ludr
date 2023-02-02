@@ -157,6 +157,9 @@ export default new (class Components {
      * @date 2022-08-08
      */
     initHighlightNavItems () {
+        // de-activate previously activated navItems
+        this.unhighlightOld()
+
         this.iterateOverComponents((component) => {
             this.iterateOverNavItems(component, (navItem) => {
                 this.hightlightNavItems(navItem, component);
@@ -180,9 +183,6 @@ export default new (class Components {
                 navItem.addEventListener('click', async (e) => {
                     // replace components with new ones, corresponding to the new page
                     Next(e.currentTarget.dataset.linkaddress);
-                    
-                    // de-activate previosly activated navItems
-                    this.unhighlightOld()
 
                     // if some nav components have been modified, re-set events
                     this.onClick();

@@ -90,7 +90,7 @@ export default new (class Layouts {
             
         Middleware.once((next) => {
             Components.initEvents('beforeLoad');
-            
+
             layout.removeUnusedElements(oldRoute.blueprint, currentRoute.blueprint);
             layout.addNewElements(oldRoute.blueprint, currentRoute.blueprint);
 
